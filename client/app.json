@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Beyond Hunger Photography",
+    "scheme": "beyondhungerphotography",
+    "slug": "beyond-hunger-photography",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.beyondhunger.photography",
+      "buildNumber": "1.0.0",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs camera access for profile pictures",
+        "NSPhotoLibraryUsageDescription": "This app needs photo library access to save photos"
+      }
+    }
+  }
+}
