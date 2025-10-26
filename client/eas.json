@@ -1,0 +1,35 @@
+{
+  "build": {
+    "production": {
+      "channel": "production",
+      "ios": {
+        "image": "latest",
+        "resourceClass": "large"
+      }
+    },
+    "development": {
+      "channel": "development",
+      "ios": {
+        "image": "latest",
+        "resourceClass": "medium",
+        "simulator": true
+      }
+    },
+    "preview": {
+      "channel": "preview",
+      "ios": {
+        "image": "latest",
+        "resourceClass": "medium"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "your-apple-id@email.com",
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "YOUR_TEAM_ID"
+      }
+    }
+  }
+}
