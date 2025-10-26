@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Add this constant at the top - fix the environment variable access
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://beyond-hunger.onrender.com' ;
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://beyond-hunger.onrender.com/api';
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -20,6 +20,28 @@ export default function AuthScreen() {
       await AsyncStorage.setItem('userToken', token);
     } catch (error) {
       console.error('Error storing token:', error);
+    }
+  };
+
+  // Test server connection on component mount
+  useEffect(() => {
+    testServerConnection();
+  }, []);
+
+  const testServerConnection = async () => {
+    try {
+      console.log('🧪 Testing server connection...');
+      const healthResponse = await fetch(`${API_URL}/health`);
+      const healthText = await healthResponse.text();
+      console.log('🏥 Server health response:', healthText);
+      
+      if (healthResponse.ok) {
+        console.log('✅ Server is reachable');
+      } else {
+        console.log('❌ Server responded with error status');
+      }
+    } catch (error) {
+      console.error('🚨 Server connection test failed:', error);
     }
   };
 
@@ -39,8 +61,14 @@ export default function AuthScreen() {
 
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/register';
+      const fullUrl = `${API_URL}${endpoint}`;
       
-      const response = await fetch(`${API_URL}${endpoint}`, {
+      // Add debugging
+      console.log('🔗 Making request to:', fullUrl);
+      console.log('📧 Email:', email);
+      console.log('🔐 Password length:', password.length);
+
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,28 +76,58 @@ export default function AuthScreen() {
         body: JSON.stringify({
           email,
           password,
+          name: email.split('@')[0] // Add name for registration
         }),
       });
 
-      const data = await response.json();
+      console.log('📨 Response status:', response.status);
+      
+      // First get response as text to avoid JSON parsing errors
+      const responseText = await response.text();
+      console.log('📄 Response text:', responseText);
+      
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError);
+        throw new Error('Invalid server response format');
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
+        throw new Error(data.error || data.message || `HTTP error! status: ${response.status}`);
       }
 
       if (data.success && data.token) {
         // Store the JWT token securely
         await storeToken(data.token);
         
-        // You can also store user data if needed
+        // Store user data
         await AsyncStorage.setItem('userData', JSON.stringify(data.user));
         
+        console.log('✅ Authentication successful, token received');
         Alert.alert('Success', `Welcome ${isLogin ? 'back' : ''}!`);
         router.push('/gallery');
+      } else {
+        throw new Error(data.error || 'Authentication failed - no token received');
       }
 
-    } catch (error: any) { // Fix: Add type annotation for error
-      Alert.alert('Error', error.message || 'Authentication failed. Please try again.');
+    } catch (error: any) {
+      console.error('❌ Auth error:', error);
+      
+      // More specific error messages
+      if (error.message.includes('Failed to fetch') || 
+          error.message.includes('Network request failed') ||
+          error.message.includes('Network Error')) {
+        Alert.alert(
+          'Network Error', 
+          'Cannot connect to server. Please check:\n• Your internet connection\n• Server status at: ' + API_URL + '\n• Try again later'
+        );
+      } else if (error.message.includes('JSON')) {
+        Alert.alert('Server Error', 'Server returned invalid response. Please try again later.');
+      } else {
+        Alert.alert('Error', error.message || 'Authentication failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
